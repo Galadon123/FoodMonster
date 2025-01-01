@@ -1,0 +1,31 @@
+version: '3'
+
+networks:
+  shared_network:
+    external: true
+
+services:
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    ports:
+      - "15672:15672"  # RabbitMQ management console
+      - "5672:5672"    # RabbitMQ server
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=password
+    networks:
+      - shared_network
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - shared_network
+
+volumes:
+  mongo_data:
