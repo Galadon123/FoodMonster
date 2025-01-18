@@ -1,69 +1,77 @@
-import React from "react";
+import React, { useContext, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { AuthContext } from "../context/AuthContext";
+
 const CheckoutPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const cart = location.state?.cart || []; // Get cart items from the passed state
+  const { isAuthenticated, user } = useContext(AuthContext); // Fetch user details from AuthContext
+  const cart = location.state?.cart || [];
 
-  // Redirect to home if cart is empty
-  if (cart.length === 0) {
-    navigate("/");
-    return null;
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: location } }); // Redirect to login page
+    }
+  }, [isAuthenticated, navigate, location]);
+
+  if (!isAuthenticated) {
+    return null; // Prevent rendering if the user is being redirected
   }
 
   // Calculate total price
   const totalPrice = cart.reduce((total, item) => total + item.price * item.quantity, 0);
 
+  const handleCheckout = async () => {
+    try {
+      const response = await fetch("http://localhost:3001/order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customerName: user?.name, // Dynamically fetch user's name
+          email: user?.email, // Dynamically fetch user's email
+          foodItems: cart.map((item) => item.name),
+        }),
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        alert(`Order placed successfully! Order ID: ${result.orderId}`);
+        navigate("/"); // Redirect to homepage or orders page
+      } else {
+        alert(`Failed to place order: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("Error placing order:", error);
+      alert("An error occurred. Please try again.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8 mt-20">
       <Navbar />
       <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6">
-        {/* Header */}
         <h1 className="text-3xl font-bold text-gray-800 mb-6">Checkout</h1>
-
-        {/* Cart Items */}
         <div className="space-y-6">
           {cart.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between border-b pb-4"
-            >
-              <div className="flex items-center">
-                <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden">
-                  <img
-                    src="https://via.placeholder.com/150" // Replace with actual food image if available
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="ml-4">
-                  <h2 className="text-lg font-semibold text-gray-800">{item.name}</h2>
-                  <p className="text-sm text-gray-500">
-                    ${item.price.toFixed(2)} x {item.quantity}
-                  </p>
-                </div>
-              </div>
-              <div className="text-lg font-semibold text-gray-800">
-                ${(item.price * item.quantity).toFixed(2)}
-              </div>
+            <div key={item.id} className="flex justify-between">
+              <span>{item.name}</span>
+              <span>{item.quantity} x ${item.price.toFixed(2)}</span>
             </div>
           ))}
         </div>
-
-        {/* Total Section */}
-        <div className="mt-8 border-t pt-4">
-          <div className="flex justify-between items-center">
-            <span className="text-xl font-semibold text-gray-800">Total</span>
-            <span className="text-2xl font-bold text-green-600">
-              ${totalPrice.toFixed(2)}
-            </span>
+        <div className="mt-8">
+          <div className="flex justify-between">
+            <span>Total:</span>
+            <span>${totalPrice.toFixed(2)}</span>
           </div>
           <button
-            className="mt-6 w-full bg-blue-500 text-white py-3 rounded-md text-lg font-semibold hover:bg-blue-600 transition-colors"
-            onClick={() => alert("Checkout process started!")}
+            onClick={handleCheckout}
+            className="mt-4 w-full bg-blue-500 text-white py-2 rounded-md"
           >
-            Proceed to Payment
+            Place Order
           </button>
         </div>
       </div>

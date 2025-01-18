@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const cors = require('cors'); // Import CORS
 const connectDB = require('./src/ConnectDB/db');
 const { connectRabbitMQ, publishOrder } = require('./src/RabbitMQ/rabbitmq');
 const Order = require('./src/models/order');
@@ -8,6 +9,7 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
+app.use(cors()); // Add CORS middleware
 app.use(bodyParser.json());
 
 // Connect to MongoDB and RabbitMQ
